@@ -50,6 +50,12 @@ export async function getImageURL(id: string): Promise<string | null> {
   return URL.createObjectURL(rec.blob)
 }
 
+// 画像IDから生の Blob を得る（OCR など base64 化が必要な用途）
+export async function getImageBlob(id: string): Promise<Blob | null> {
+  const rec = await db.images.get(id)
+  return rec ? rec.blob : null
+}
+
 export async function deleteImage(id: string): Promise<void> {
   await db.images.delete(id)
 }

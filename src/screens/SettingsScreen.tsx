@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { DEFAULT_MODEL, EXPORT_WARN_DAYS, LS_KEYS } from '../constants'
 import { exportData, importData, type ImportResult } from '../lib/export'
+import { testConnection } from '../lib/ai'
 
 function daysSince(iso: string | null): number | null {
   if (!iso) return null
@@ -22,6 +23,7 @@ export default function SettingsScreen() {
     () => localStorage.getItem(LS_KEYS.modelName) ?? DEFAULT_MODEL,
   )
   const [keyMsg, setKeyMsg] = useState('')
+  const [testBusy, setTestBusy] = useState(false)
 
   const [withImages, setWithImages] = useState(true)
   const [importMsg, setImportMsg] = useState('')
@@ -46,6 +48,25 @@ export default function SettingsScreen() {
     setApiKey('')
     setKeyMsg('APIキーを消去しました')
     setTimeout(() => setKeyMsg(''), 2000)
+  }
+
+  // 接続テスト: 入力中の値を保存してから軽い1回の呼び出しで疎通確認
+  async function handleTest() {
+    setKeyMsg('')
+    if (!apiKey.trim()) {
+      setKeyMsg('APIキーを入力してください')
+      return
+    }
+    saveKey()
+    setTestBusy(true)
+    try {
+      const r = await testConnection()
+      setKeyMsg(`接続OK（モデル: ${r.model}）`)
+    } catch (e) {
+      setKeyMsg(e instanceof Error ? e.message : '接続テストに失敗しました')
+    } finally {
+      setTestBusy(false)
+    }
   }
 
   async function handleExport() {
@@ -83,7 +104,7 @@ export default function SettingsScreen() {
 
       {/* AI 設定 */}
       <section className={cardCls}>
-        <h2 className="font-semibold text-slate-800">AI 設定（Phase 2 以降）</h2>
+        <h2 className="font-semibold text-slate-800">AI 設定（Gemini）</h2>
         <div>
           <label className="mb-1 block text-sm text-slate-600">
             Gemini APIキー
@@ -139,13 +160,23 @@ export default function SettingsScreen() {
           </button>
           <button
             type="button"
-            disabled
-            title="Phase 2 で有効化されます"
-            className={`${btnCls} border border-slate-200 text-slate-400`}
+            onClick={handleTest}
+            disabled={testBusy}
+            className={`${btnCls} border border-indigo-300 text-indigo-700 disabled:opacity-50`}
           >
-            接続テスト（Phase 2）
+            {testBusy ? 'テスト中…' : '接続テスト'}
           </button>
-          {keyMsg && <span className="text-sm text-emerald-600">{keyMsg}</span>}
+          {keyMsg && (
+            <span
+              className={`text-sm ${
+                /OK|保存|消去/.test(keyMsg)
+                  ? 'text-emerald-600'
+                  : 'text-rose-600'
+              }`}
+            >
+              {keyMsg}
+            </span>
+          )}
         </div>
       </section>
 

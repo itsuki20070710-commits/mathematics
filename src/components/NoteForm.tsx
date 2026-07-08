@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { Difficulty, Importance, Note } from '../types'
 import { DIFFICULTIES, FIELDS } from '../constants'
-import { compressAndSaveImage } from '../lib/image'
+import { compressAndSaveImage, getImageBlob } from '../lib/image'
+import { classifyVerbalization, hasApiKey, ocrImage } from '../lib/ai'
 import { ImageThumb } from './ui'
 
 // 登録・編集の両方で使う入力値
@@ -82,6 +83,10 @@ export default function NoteForm({
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [ocrBusy, setOcrBusy] = useState(false)
+  const [classifyBusy, setClassifyBusy] = useState(false)
+  const [aiMsg, setAiMsg] = useState('')
+  const aiReady = hasApiKey()
 
   function set<K extends keyof NoteFormValues>(key: K, value: NoteFormValues[K]) {
     setV((prev) => ({ ...prev, [key]: value }))
@@ -121,6 +126,59 @@ export default function NoteForm({
       'imageIds',
       v.imageIds.filter((x) => x !== id),
     )
+  }
+
+  // OCR: 先頭の添付画像から問題文を読み取り problemText に反映（手修正可）
+  async function handleOcr() {
+    setError('')
+    setAiMsg('')
+    const first = v.imageIds[0]
+    if (!first) return
+    setOcrBusy(true)
+    try {
+      const blob = await getImageBlob(first)
+      if (!blob) throw new Error('画像を取得できませんでした')
+      const text = await ocrImage(blob)
+      set('problemText', text)
+      setAiMsg('問題文を読み取りました（内容を確認・修正してください）')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '読み取りに失敗しました')
+    } finally {
+      setOcrBusy(false)
+    }
+  }
+
+  // 自動分類: 言語化から 分野/タグ/トリガー/本質/難易度 候補をフォームへ反映
+  async function handleClassify() {
+    setError('')
+    setAiMsg('')
+    if (!v.verbalization.trim()) {
+      setError('言語化を入力してから実行してください')
+      return
+    }
+    setClassifyBusy(true)
+    try {
+      const c = await classifyVerbalization(v.verbalization)
+      setV((prev) => {
+        const mergedTags = c.tags
+          ? Array.from(new Set([...prev.tags, ...c.tags]))
+          : prev.tags
+        return {
+          ...prev,
+          field: c.field ?? prev.field,
+          difficulty: c.difficulty ?? prev.difficulty,
+          tags: mergedTags,
+          // テキスト系は既存を上書きしない（空のときだけ反映）
+          trigger: prev.trigger.trim() ? prev.trigger : c.trigger ?? prev.trigger,
+          essence: prev.essence.trim() ? prev.essence : c.essence ?? prev.essence,
+        }
+      })
+      setAiMsg('AIの候補を反映しました（内容を確認・修正してください）')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '自動分類に失敗しました')
+    } finally {
+      setClassifyBusy(false)
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -225,7 +283,23 @@ export default function NoteForm({
             ))}
           </div>
         )}
-        {/* ※「画像から問題文を読み取る（AI）」は Phase 2 以降 */}
+        {v.imageIds.length > 0 && (
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={handleOcr}
+              disabled={!aiReady || ocrBusy}
+              className="rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 disabled:opacity-50"
+            >
+              {ocrBusy ? '読み取り中…' : '🖼 画像から問題文を読み取る'}
+            </button>
+            <span className="ml-2 text-xs text-slate-400">
+              {aiReady
+                ? '先頭の画像を使用します'
+                : '設定でAPIキーを保存すると使えます'}
+            </span>
+          </div>
+        )}
       </div>
 
       <div>
@@ -239,7 +313,28 @@ export default function NoteForm({
           onChange={(e) => set('verbalization', e.target.value)}
           placeholder="この問題で何をどう考えたか、言葉で。"
         />
+        <div className="mt-2">
+          <button
+            type="button"
+            onClick={handleClassify}
+            disabled={!aiReady || classifyBusy || !v.verbalization.trim()}
+            className="rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 disabled:opacity-50"
+          >
+            {classifyBusy ? '分類中…' : '🤖 AI自動分類を実行'}
+          </button>
+          <span className="ml-2 text-xs text-slate-400">
+            {aiReady
+              ? '分野・タグ・トリガー・本質・難易度の候補を反映'
+              : '設定でAPIキーを保存すると使えます'}
+          </span>
+        </div>
       </div>
+
+      {aiMsg && (
+        <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          {aiMsg}
+        </p>
+      )}
 
       <div>
         <label className={labelCls}>トリガー（実戦ヒント）</label>
