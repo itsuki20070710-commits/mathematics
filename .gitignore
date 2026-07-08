@@ -1,0 +1,20 @@
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# tsc -b（composite ビルド）の生成物
+*.tsbuildinfo
+/vite.config.js
+/vite.config.d.ts
+.env
+.env.*
+!.env.example
+
+# エディタ / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.log
+npm-debug.log*
