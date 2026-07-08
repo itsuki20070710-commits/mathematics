@@ -9,7 +9,7 @@
 - **設定保存: localStorage** — APIキー・モデル名・表示設定のみ（ノートデータは保存しない）
 - **数式表示: KaTeX** — `$...$`（インライン）と `$$...$$`（ディスプレイ）をレンダリング
 - **PWA: vite-plugin-pwa** — Phase 4 で有効化（それまで導入しない）
-- **デプロイ: GitHub Actions → GitHub Pages** — `vite.config.ts` の `base` はリポジトリ名 `/mathematics/` に合わせる
+- **デプロイ: GitHub Actions → GitHub Pages** — `vite.config.ts` の `base` はリポジトリ名 `/gengoka-note/` に合わせる
 - **モバイルファースト** — 下部固定タブで画面切替する単一ページSPA
 
 上記スタックから逸脱しない（別のDB・状態管理ライブラリ・CSSフレームワーク等を勝手に足さない）。

@@ -18,10 +18,11 @@ npm run preview  # ビルド結果のプレビュー
 ## デプロイ（GitHub Pages）
 `main` へ push すると GitHub Actions（`.github/workflows/deploy.yml`）が
 自動でビルドして GitHub Pages に公開します。公開URLは
-`https://<ユーザー名>.github.io/mathematics/` です。
+`https://itsuki20070710-commits.github.io/gengoka-note/` です。
 
 初回のみ、リポジトリの **Settings → Pages → Build and deployment → Source** を
-**「GitHub Actions」** に設定してください。
+**「GitHub Actions」** に設定してください。`vite.config.ts` の `base` は
+リポジトリ名 `/gengoka-note/` に合わせています。
 
 ## 開発フェーズ
 - **Phase 1（本リリース）**: 骨組み・Dexieデータ層・登録/ライブラリ/分析/設定・KaTeX・Pages自動デプロイ（AIなしで完結）
