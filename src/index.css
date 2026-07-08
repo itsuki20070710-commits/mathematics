@@ -1,0 +1,29 @@
+@import 'katex/dist/katex.min.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #f1f5f9; /* slate-100 */
+  color: #0f172a; /* slate-900 */
+  -webkit-text-size-adjust: 100%;
+}
+
+/* KaTeX の display 数式が横にはみ出す場合はスクロールさせる */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0;
+}
